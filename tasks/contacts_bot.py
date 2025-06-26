@@ -95,9 +95,10 @@ def input_error(
     return _input_error
 
 
-def show_all(book: AddressBook) -> str:
+def show_all(args: list[str], book: AddressBook) -> str:
     """Return all contacts as string
 
+    :param args: arguments, not used  (list of string, mandatory)
     :param book: address book (AddressBook, mandatory)
     :return contacts as string (string)
     """
@@ -273,9 +274,10 @@ def show_contact_birthday(args: list[str], book: AddressBook) -> str:
     return str(contact.birthday) if contact.birthday is not None else "The contact does not have a date of birth."
 
 
-def show_upcoming_birthdays(book: AddressBook) -> str:
+def show_upcoming_birthdays(args: list[str], book: AddressBook) -> str:
     """Return all contacts whose birthday is within the next week, including today, grouped by date
 
+    :param args: arguments, not used  (list of string, mandatory)
     :param book: address book (AddressBook, mandatory)
     :return contacts whose birthday is within the next period (string)
     """
@@ -298,6 +300,18 @@ def main() -> None:
     signal.signal(signal.SIGINT, exit_by_terminate_by_signals)
     signal.signal(signal.SIGTERM, exit_by_terminate_by_signals)
 
+    address_book_commands = {
+        "all": show_all,
+        "phone": show_phone,
+        "add": add_contact,
+        "change": change_contact,
+        "delete": delete_contact,
+        "add-birthday": add_contact_birthday,
+        "change-birthday": change_contact_birthday,
+        "show-birthday": show_contact_birthday,
+        "birthdays": show_upcoming_birthdays,
+    }
+
     try:
         with contacts_bot_data() as book:
 
@@ -310,36 +324,18 @@ def main() -> None:
                     command, *args = parse_input(input("Enter a command: "))
                 except EOFError:
                     break
-
-                if command in {"close", "exit", "quit", }:
-                    break
-
                 try:
-                    match command:
-                        case "hello":
+                    if command in address_book_commands:
+                        print_colored(address_book_commands[command](args, book))
+                    else:
+                        if command in {"close", "exit", "quit", }:
+                            break
+                        elif command == "hello":
                             print_colored("How can I help you?")
                             print_help("Enter 'help' for a list of built-in commands.")
-                        case "help":
+                        elif  command == "help":
                             print_help(CONTACTS_BOT_HELP)
-                        case "all":
-                            print_colored(show_all(book))
-                        case "phone":
-                            print_colored(show_phone(args, book))
-                        case "add":
-                            print_colored(add_contact(args, book))
-                        case "change":
-                            print_colored(change_contact(args, book))
-                        case "delete":
-                            print_colored(delete_contact(args, book))
-                        case "add-birthday":
-                            print_colored(add_contact_birthday(args, book))
-                        case "change-birthday":
-                            print_colored(change_contact_birthday(args, book))
-                        case "show-birthday":
-                            print_colored(show_contact_birthday(args, book))
-                        case "birthdays":
-                            print_colored(show_upcoming_birthdays(book))
-                        case _:
+                        else:
                             print_error("Invalid command.")
                 except Exception as e:
                     print_error("An unexpected error occurred: {error}.".format(error=repr(e)))
